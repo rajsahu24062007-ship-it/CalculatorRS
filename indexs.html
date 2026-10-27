@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raj's Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            bg: 'var(--bg-color)',      
+                            panel: 'var(--panel-color)',   
+                            card: 'var(--card-color)',    
+                            border: 'var(--border-color)',  
+                            cyan: 'var(--accent-color)',    
+                            text: 'var(--text-color)',
+                            textMuted: 'var(--text-muted)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        :root {
+            /* Default Dark Theme */
+            --bg-color: #0a0f18;
+            --panel-color: #111827;
+            --card-color: #1f2937;
+            --border-color: #374151;
+            --accent-color: #06b6d4;
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+        
+        .light {
+            /* Light Theme */
+            --bg-color: #f8fafc;
+            --panel-color: #ffffff;
+            --card-color: #f1f5f9;
+            --border-color: #cbd5e1;
+            --accent-color: #0284c7;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--panel-color); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        @media (max-width: 768px) {
+            .app-layout { grid-template-columns: 1fr; }
+            aside { display: none; }
+        }
+
+        .view-section { 
+            display: none; 
+            height: calc(100vh - 1rem); 
+            overflow-y: auto; 
+            padding: 1.5rem 2rem; 
+        }
+        .view-section.active { display: flex; flex-direction: column; }
+        
+        .calc-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            transition: all 0.1s ease-in-out;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+            min-height: 48px;
+        }
+        .calc-btn:active { transform: scale(0.95); }
+
+        /* General Button Themes */
+        .l1-fn { background-color: #273b73; color: #e2e8f0; border-color: #384c8a; }
+        .l1-fn:hover { background-color: #314a90; }
+        
+        .l1-num { background-color: #202635; color: #f1f5f9; border-color: #2d3548; }
+        .l1-num:hover { background-color: #2a3245; }
+        
+        .l1-op { background-color: #1d4494; color: #f1f5f9; border-color: #2655b3; font-weight: 700; font-size: 1.1rem;}
+        .l1-op:hover { background-color: #2455ba; }
+        
+        .l1-ac { background-color: #ff3366; color: #ffffff; border-color: #ff4d79; font-weight: 700; }
+        .l1-ac:hover { background-color: #ff4d79; }
+        
+        .l1-eq { background-color: #eab308; color: #1e293b; border-color: #facc15; font-weight: 800; font-size: 1.2rem; }
+        .l1-eq:hover { background-color: #facc15; }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 0.875rem;
+            padding: 0.75rem 1.25rem; margin: 0.25rem 1rem;
+            border-radius: 0.75rem; color: var(--text-muted);
+            font-size: 0.9rem; font-weight: 500; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { background: var(--border-color); color: var(--text-color); }
+        .nav-item.active {
+            background: var(--accent-color);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .display-font { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Tags */
+        .tag-calc { background: #3b82f633; color: #60a5fa; border: 1px solid #3b82f655; }
+        .tag-form { background: #a855f733; color: #c084fc; border: 1px solid #a855f755; }
+        .tag-ent { background: #10b98133; color: #34d399; border: 1px solid #10b98155; }
+        .tag-info { background: #f59e0b33; color: #fbbf24; border: 1px solid #f59e0b55; }
+        .tag-prog { background: #ec489933; color: #f472b6; border: 1px solid #ec489955; }
+    </style>
+</head>
+<body class="antialiased">
+
+<div class="app-layout">
+    
+    <aside style="background-color: var(--panel-color); border-right: 1px solid var(--border-color);" class="flex flex-col justify-between py-6 select-none z-10 shadow-xl">
+        <div>
+            <div class="px-6 mb-8 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" style="background-color: var(--accent-color);">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight" style="color: var(--text-color);">Raj's Calculator</h1>
+            </div>
+
+            <nav class="flex flex-col gap-1">
+                <div class="nav-item active" data-target="view-calculator">
+                    <i class="fa-solid fa-equals w-5 text-center"></i> Calculator
+                </div>
+                <div class="nav-item" data-target="view-custom-formula">
+                    <i class="fa-solid fa-square-root-variable w-5 text-center"></i> Custom Formula
+                </div>
+                <div class="nav-item" data-target="view-entropy">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i> Entropy
+                </div>
+                <div class="nav-item" data-target="view-info-theory">
+                    <i class="fa-solid fa-satellite-dish w-5 text-center"></i> Info Theory
+                </div>
+                <div class="nav-item" data-target="view-programmer">
+                    <i class="fa-solid fa-code w-5 text-center"></i> Programmer
+                </div>
+                <div class="nav-item" data-target="view-history">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> History
+                </div>
+                <div class="nav-item" data-target="view-settings">
+                    <i class="fa-solid fa-sliders w-5 text-center"></i> Settings
+                </div>
+            </nav>
+        </div>
+    </aside>
+
+    <main class="relative w-full h-full flex flex-col overflow-hidden">
+        
+        <!-- Global Angle Toggle -->
+        <div class="absolute top-4 right-6 z-20">
+            <button id="global-angle-btn" onclick="toggleGlobalAngle()" class="glass-panel px-4 py-1.5 rounded-lg text-xs font-bold tracking-wider hover:bg-opacity-80 transition-colors shadow-sm" style="color: var(--accent-color);">
+                DEG
+            </button>
+        </div>
+
+        <div id="view-calculator" class="view-section active">
+            <div class="max-w-5xl mx-auto w-full h-full flex flex-col pb-4">
+                
+                <div class="glass-panel rounded-2xl p-6 mb-5 shadow-2xl flex flex-col justify-end text-right min-h-[140px] relative overflow-hidden">
+                    <div id="calc-expr" class="text-sm h-6 display-font truncate opacity-70 mb-1" style="color: var(--text-color);"></div>
+                    <div id="calc-main-display" class="display-font text-5xl font-semibold truncate tracking-tight" style="color: var(--text-color);">0</div>
+                </div>
+
+                <!-- 7-Column Grid -->
+                <div class="grid grid-cols-7 gap-2.5 flex-grow">
+                    <!-- Row 1 -->
+                    <button class="calc-btn l1-fn" onclick="calcFn('sin')">sin</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('cos')">cos</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('tan')">tan</button>
+                    <button class="calc-btn l1-ac" onclick="calcClear()">AC</button>
+                    <button class="calc-btn l1-num" onclick="calcBack()"><i class="fa-solid fa-delete-left"></i></button>
+                    <button class="calc-btn l1-op" onclick="calcChar('%')">%</button>
+                    <button class="calc-btn l1-eq" onclick="calcCompute()">=</button>
+
+                    <!-- Row 2 -->
+                    <button class="calc-btn l1-fn" onclick="calcFn('sin⁻¹')">sin⁻¹</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('cos⁻¹')">cos⁻¹</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('tan⁻¹')">tan⁻¹</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('7')">7</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('8')">8</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('9')">9</button>
+                    <button class="calc-btn l1-op" onclick="calcChar('/')">÷</button>
+
+                    <!-- Row 3 -->
+                    <button class="calc-btn l1-fn" onclick="calcFn('log10')">log₁₀</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('log2')">log₂</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('ln')">ln</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('4')">4</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('5')">5</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('6')">6</button>
+                    <button class="calc-btn l1-op" onclick="calcChar('*')">×</button>
+
+                    <!-- Row 4 -->
+                    <button class="calc-btn l1-fn" onclick="calcChar('^2')">x²</button>
+                    <button class="calc-btn l1-fn" onclick="calcChar('^3')">x³</button>
+                    <button class="calc-btn l1-fn" onclick="calcChar('^')">xʸ</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('1')">1</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('2')">2</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('3')">3</button>
+                    <button class="calc-btn l1-op" onclick="calcChar('-')">−</button>
+
+                    <!-- Row 5 -->
+                    <button class="calc-btn l1-fn" onclick="calcFn('!')">n!</button>
+                    <button class="calc-btn l1-fn" onclick="calcChar('(')">(</button>
+                    <button class="calc-btn l1-fn" onclick="calcChar(')')">)</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('π')">π</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('0')">0</button>
+                    <button class="calc-btn l1-num font-bold" onclick="calcDecimal()">.</button>
+                    <button class="calc-btn l1-op" onclick="calcChar('+')">+</button>
+
+                    <!-- Row 6 -->
+                    <button class="calc-btn l1-fn" onclick="calcFn('√')">√x</button>
+                    <button class="calc-btn l1-fn" onclick="calcChar('^(1/')">ʸ√x</button>
+                    <button class="calc-btn l1-fn" onclick="calcFn('|')">|x|</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('^')">^</button>
+                    <button class="calc-btn l1-num" onclick="calcChar('e')">e</button>
+                    <button class="calc-btn l1-num" onclick="calcChar(',')">,</button>
+                    <button class="calc-btn l1-fn font-bold" onclick="calcChar('Δ')">Δ</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-custom-formula" class="view-section">
+            <div class="max-w-6xl mx-auto w-full flex flex-col gap-4 pb-6 h-full">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1" style="color: var(--text-color);">Custom Formula</h2>
+                    <p class="text-sm opacity-60">Over 60 built-in formulas with auto-variable mapping.</p>
+                </div>
+
+                <select id="formula-library-select" onchange="loadFormulaFromLibrary(this)" class="glass-panel w-full rounded-xl p-3.5 font-medium outline-none cursor-pointer text-sm" style="color: var(--text-color);">
+                    <option value="">-- Quick Formula Library (Select to load) --</option>
+                </select>
+
+                <div class="glass-panel rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <textarea id="formula-input" rows="2" class="w-full bg-transparent display-font text-lg outline-none resize-none" style="color: var(--text-color);" placeholder="(a+b)^2 = a^2 + b^2 + 2*a*b" oninput="onFormulaInputChange()"></textarea>
+                    
+                    <div class="flex sm:flex-col flex-row gap-2 min-w-[100px]">
+                        <button class="flex-1 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg shadow transition-colors" onclick="formulaClear()">AC</button>
+                        <button class="flex-1 px-4 py-2 glass-panel hover:bg-white/5 text-xs font-bold rounded-lg transition-colors" onclick="formulaBack()"><i class="fa-solid fa-delete-left"></i></button>
+                        <button class="flex-1 px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-extrabold rounded-lg shadow transition-colors" onclick="evaluateCustomFormula()">Eval</button>
+                    </div>
+                </div>
+
+                <div id="formula-variables-container" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+
+                <div class="glass-panel rounded-xl p-4 flex items-center justify-between shadow-lg">
+                    <span class="text-xs font-bold opacity-50 uppercase tracking-widest">Result</span>
+                    <div id="formula-result-display" class="display-font text-3xl font-bold text-amber-400">= 0</div>
+                </div>
+
+                <!-- Custom Formula Keypad (8 Columns) -->
+                <div class="grid grid-cols-8 gap-2 mt-auto">
+                    <!-- Row 1 -->
+                    <button class="calc-btn l1-num" onclick="fKey('7')">7</button>
+                    <button class="calc-btn l1-num" onclick="fKey('8')">8</button>
+                    <button class="calc-btn l1-num" onclick="fKey('9')">9</button>
+                    <button class="calc-btn l1-op" onclick="fKey('/')">÷</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('sin(')">sin</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('cos(')">cos</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('tan(')">tan</button>
+                    <button class="calc-btn glass-panel text-xs" style="color: var(--accent-color);" onclick="toggleGlobalAngle()">DEG/RAD</button>
+
+                    <!-- Row 2 -->
+                    <button class="calc-btn l1-num" onclick="fKey('4')">4</button>
+                    <button class="calc-btn l1-num" onclick="fKey('5')">5</button>
+                    <button class="calc-btn l1-num" onclick="fKey('6')">6</button>
+                    <button class="calc-btn l1-op" onclick="fKey('*')">×</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('sin⁻¹(')">sin⁻¹</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('cos⁻¹(')">cos⁻¹</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('tan⁻¹(')">tan⁻¹</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('π')">π</button>
+
+                    <!-- Row 3 -->
+                    <button class="calc-btn l1-num" onclick="fKey('1')">1</button>
+                    <button class="calc-btn l1-num" onclick="fKey('2')">2</button>
+                    <button class="calc-btn l1-num" onclick="fKey('3')">3</button>
+                    <button class="calc-btn l1-op" onclick="fKey('-')">−</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('log10(')">log</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('ln(')">ln</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('10^')">10ˣ</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('e^')">eˣ</button>
+
+                    <!-- Row 4 -->
+                    <button class="calc-btn l1-num" onclick="fKey('-')">±</button>
+                    <button class="calc-btn l1-num" onclick="fKey('0')">0</button>
+                    <button class="calc-btn l1-num font-bold" onclick="fDecimal()">.</button>
+                    <button class="calc-btn l1-op" onclick="fKey('+')">+</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('^2')">x²</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('^3')">x³</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('^')">xʸ</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('√(')">√x</button>
+
+                    <!-- Row 5 (Purple Buttons) -->
+                    <button class="calc-btn font-bold text-sm" style="background-color: #4c1d95; color: #d8b4fe; border-color: #5b21b6;" onclick="fKey('integral(')">Def ∫</button>
+                    <button class="calc-btn font-bold text-sm" style="background-color: #4c1d95; color: #d8b4fe; border-color: #5b21b6;" onclick="fKey('d2/dx2(')">d²/dx²</button>
+                    <button class="calc-btn font-bold text-sm" style="background-color: #4c1d95; color: #d8b4fe; border-color: #5b21b6;" onclick="fKey('product(')">Π</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('^(1/3)')">³√x</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('^(1/')">ʸ√x</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('1/')">1/x</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('|')">|x|</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('∞')">∞</button>
+
+                    <!-- Row 6 -->
+                    <button class="calc-btn l1-fn text-sm" onclick="fKey('∫(')">∫</button>
+                    <button class="calc-btn l1-fn text-sm" onclick="fKey('d/dx(')">d/dx</button>
+                    <button class="calc-btn l1-fn text-sm" onclick="fKey('lim(')">lim</button>
+                    <button class="calc-btn l1-fn text-sm" onclick="fKey('Σ(')">Σ</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('fact(')">n!</button>
+                    <button class="calc-btn l1-fn" onclick="fKey('(')">(</button>
+                    <button class="calc-btn l1-fn" onclick="fKey(')')">)</button>
+                    <button class="calc-btn l1-fn" onclick="fKey(',')">,</button>
+
+                    <!-- Row 7 -->
+                    <button class="calc-btn glass-panel text-xs text-blue-300" onclick="fKey('n!/r!(n - r)!')">nCr</button>
+                    <button class="calc-btn glass-panel text-xs text-blue-300" onclick="fKey('n!/(n - r)!')">nPr</button>
+                    <button class="calc-btn glass-panel text-xs text-blue-300" onclick="fKey('log2(')">log₂</button>
+                    <button class="calc-btn glass-panel text-xs text-blue-300" onclick="fKey('i')">i</button>
+                    <button class="calc-btn glass-panel text-xs text-emerald-300" onclick="fKey('A⁻¹ = 1/(C(11)C(22)-C(12)C(21))[ C(22) -C(12) ;-C(21) C(11) ]')">A⁻¹</button>
+                    <button class="calc-btn glass-panel text-xs text-emerald-300" onclick="fKey('Aᵀ = [ C(11) C(21) C(31) ;C(12) C(22) C(32) ; C(13) C(23) C(33) ]')">Aᵀ</button>
+                    <button class="calc-btn glass-panel text-xs text-emerald-300" onclick="fKey('C(11) (C(22)C(33)-C(23)C(32)) - C(12)(C(21)C(33) - C(23)C(31)) + C(13)(C(21)C(32) - C(22)C(31)) )')">det(A)</button>
+                    <button class="calc-btn glass-panel text-xs text-blue-300" onclick="fKey('Δ')">Δ</button>
+
+                    <!-- Row 8 -->
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('x')">x</button>
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('y')">y</button>
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('z')">z</button>
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('a')">a</button>
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('b')">b</button>
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('c')">c</button>
+                    <button class="calc-btn glass-panel font-bold text-fuchsia-300" onclick="fKey('e')">e</button>
+                    <button class="calc-btn glass-panel font-bold text-orange-300 text-sm" onclick="fKey('α')">α</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-entropy" class="view-section">
+            <div class="max-w-5xl mx-auto w-full flex flex-col gap-6 pb-6">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1" style="color: var(--text-color);">Entropy Calculator</h2>
+                    <p class="text-sm opacity-60">Enter discrete probabilities or frequencies.</p>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-6 shadow-xl relative">
+                    <input type="text" id="entropy-input" class="w-full glass-panel rounded-xl p-5 display-font text-xl outline-none shadow-inner focus:border-cyan-400 transition-colors" value="0.5 0.3 0.2" onfocus="showEntKeypad()" placeholder="e.g. 0.5 0.3 0.2">
+                    
+                    <!-- 4x4 Dynamic Keypad -->
+                    <div id="entropy-keypad" class="grid grid-cols-4 gap-2 mt-4" style="display: none; max-width: 500px;">
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('7')">7</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('8')">8</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('9')">9</button>
+                        <button class="calc-btn l1-ac py-4 text-lg" onclick="entClear()">AC</button>
+                        
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('4')">4</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('5')">5</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('6')">6</button>
+                        <button class="calc-btn l1-num py-4 text-lg bg-slate-700" onclick="entBack()"><i class="fa-solid fa-delete-left"></i></button>
+                        
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('1')">1</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('2')">2</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('3')">3</button>
+                        <button class="calc-btn py-4 text-lg font-bold text-white shadow-lg bg-blue-600 hover:bg-blue-700 border-blue-800" onclick="entKey(' ')">Space</button>
+                        
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey('0')">0</button>
+                        <button class="calc-btn l1-num py-4 text-lg font-bold" onclick="entDecimal()">.</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="entKey(',')">,</button>
+                        <button class="calc-btn py-4 text-2xl font-bold bg-amber-400 hover:bg-amber-500 text-slate-900 border-amber-600" onclick="computeEntropy()">=</button> 
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-panel rounded-xl p-5 text-center">
+                        <div class="text-[11px] font-bold opacity-60 uppercase mb-2">ENTROPY H(X)</div>
+                        <div id="ent-res-bits" class="text-2xl font-bold display-font" style="color: var(--accent-color);">- b</div>
+                    </div>
+                    <div class="glass-panel rounded-xl p-5 text-center">
+                        <div class="text-[11px] font-bold opacity-60 uppercase mb-2">H(X) IN NATS</div>
+                        <div id="ent-res-nats" class="text-2xl font-bold display-font" style="color: var(--accent-color);">- nt</div>
+                    </div>
+                    <div class="glass-panel rounded-xl p-5 text-center">
+                        <div class="text-[11px] font-bold opacity-60 uppercase mb-2">MAX ENTROPY</div>
+                        <div id="ent-res-max" class="text-2xl font-bold display-font" style="color: var(--accent-color);">- b</div>
+                    </div>
+                    <div class="glass-panel rounded-xl p-5 text-center">
+                        <div class="text-[11px] font-bold opacity-60 uppercase mb-2">SOURCE EFFICIENCY</div>
+                        <div id="ent-res-eff" class="text-2xl font-bold display-font" style="color: var(--accent-color);">-%</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-bold mb-3 mt-4">Code Performance</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="glass-panel rounded-xl p-5">
+                            <h4 class="font-bold text-cyan-400 mb-2">Shannon-Fano</h4>
+                            <div class="text-sm opacity-80 flex flex-col gap-1">
+                                <div>Avg L: <span id="sf-avg" class="font-bold text-white">0.000</span></div>
+                                <div>Eff (η): <span id="sf-eff" class="font-bold text-white">0.00%</span></div>
+                                <div class="text-rose-400">Redundancy: <span id="sf-red">0.00%</span></div>
+                            </div>
+                        </div>
+                        <div class="glass-panel rounded-xl p-5">
+                            <h4 class="font-bold text-fuchsia-400 mb-2">Huffman</h4>
+                            <div class="text-sm opacity-80 flex flex-col gap-1">
+                                <div>Avg L: <span id="hf-avg" class="font-bold text-white">0.000</span></div>
+                                <div>Eff (η): <span id="hf-eff" class="font-bold text-white">0.00%</span></div>
+                                <div class="text-rose-400">Redundancy: <span id="hf-red">0.00%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-panel rounded-xl overflow-hidden shadow-lg">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-black/20 border-b border-gray-700">
+                                <tr>
+                                    <th class="p-4 font-semibold opacity-70">Sym</th>
+                                    <th class="p-4 font-semibold opacity-70">P(x)</th>
+                                    <th class="p-4 font-semibold text-cyan-400">Shannon-Fano</th>
+                                    <th class="p-4 font-semibold text-fuchsia-400">Huffman</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entropy-table-body" class="divide-y divide-gray-700/50">
+                                <!-- Generated Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-info-theory" class="view-section">
+            <div class="max-w-5xl mx-auto w-full flex flex-col gap-6 pb-6">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1" style="color: var(--text-color);">Info Theory</h2>
+                    <p class="text-sm opacity-60">Joint probability matrix P(X,Y).</p>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-6 shadow-xl relative">
+                    <textarea id="it-matrix" class="w-full h-32 glass-panel rounded-xl p-4 display-font text-lg outline-none focus:border-cyan-400 transition-colors resize-none shadow-inner" onfocus="showITKeypad()" placeholder="0.125, 0.0625, 0.03125&#10;0.25, 0.1, 0.1">0.125, 0.0625, 0.03125, 0.03125
+0.0625, 0.125, 0.03125, 0.03125
+0.25, 0, 0, 0</textarea>
+                    
+                    <!-- 4x4 Dynamic Keypad Matching Request -->
+                    <div id="it-keypad" class="grid grid-cols-4 gap-2 mt-4" style="display: none; max-width: 500px;">
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('7')">7</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('8')">8</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('9')">9</button>
+                        <button class="calc-btn l1-ac py-4 text-lg" onclick="itClear()">AC</button>
+                        
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('4')">4</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('5')">5</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('6')">6</button>
+                        <button class="calc-btn l1-num py-4 text-lg bg-slate-700" onclick="itBack()"><i class="fa-solid fa-delete-left"></i></button>
+
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('1')">1</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('2')">2</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('3')">3</button>
+                        <button class="calc-btn py-4 text-lg font-bold text-white shadow-lg bg-blue-600 hover:bg-blue-700 border-blue-800" onclick="itKey('\n')">Space/NL</button>
+                        
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey('0')">0</button>
+                        <button class="calc-btn l1-num py-4 text-lg font-bold" onclick="itDecimal()">.</button>
+                        <button class="calc-btn l1-num py-4 text-lg" onclick="itKey(',')">,</button>
+                        <button class="calc-btn py-4 text-2xl font-bold bg-amber-400 hover:bg-amber-500 text-slate-900 border-amber-600" onclick="computeInfoTheory()">=</button> 
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="glass-panel p-5 rounded-xl text-center">
+                        <div class="text-[10px] uppercase opacity-60 mb-1">MARGINAL H(X)</div>
+                        <div id="it-hx" class="text-xl font-bold display-font" style="color: var(--accent-color);">-</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl text-center">
+                        <div class="text-[10px] uppercase opacity-60 mb-1">MARGINAL H(Y)</div>
+                        <div id="it-hy" class="text-xl font-bold display-font" style="color: var(--accent-color);">-</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl text-center">
+                        <div class="text-[10px] uppercase opacity-60 mb-1">JOINT H(X,Y)</div>
+                        <div id="it-hxy" class="text-xl font-bold display-font" style="color: var(--accent-color);">-</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl text-center">
+                        <div class="text-[10px] uppercase opacity-60 mb-1">CONDITIONAL H(X|Y)</div>
+                        <div id="it-hx_y" class="text-xl font-bold display-font" style="color: var(--accent-color);">-</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl text-center">
+                        <div class="text-[10px] uppercase opacity-60 mb-1">CONDITIONAL H(Y|X)</div>
+                        <div id="it-hy_x" class="text-xl font-bold display-font" style="color: var(--accent-color);">-</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl text-center">
+                        <div class="text-[10px] uppercase opacity-60 mb-1">MUTUAL INFO I(X;Y)</div>
+                        <div id="it-ixy" class="text-xl font-bold display-font" style="color: var(--accent-color);">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-programmer" class="view-section">
+            <div class="max-w-5xl mx-auto w-full flex flex-col gap-6 pb-6">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1" style="color: var(--text-color);">Programmer</h2>
+                    <p class="text-sm opacity-60">Base conversions with dynamic keypad.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex flex-col gap-3">
+                        <div class="glass-panel border-2 rounded-xl p-4 cursor-pointer prog-base-box relative" data-base="16" onclick="setProgBase(16)">
+                            <div class="text-[11px] font-bold opacity-60 mb-1">HEXADECIMAL</div>
+                            <input type="text" id="prog-hex" class="w-full bg-transparent text-purple-400 display-font text-2xl outline-none" readonly value="0">
+                        </div>
+                        <div class="glass-panel border-2 rounded-xl p-4 cursor-pointer prog-base-box relative border-cyan-500" data-base="10" onclick="setProgBase(10)">
+                            <div class="text-[11px] font-bold opacity-60 mb-1">DECIMAL</div>
+                            <input type="text" id="prog-dec" class="w-full bg-transparent display-font text-2xl outline-none" style="color: var(--text-color);" readonly value="0">
+                        </div>
+                        <div class="glass-panel border-2 rounded-xl p-4 cursor-pointer prog-base-box relative" data-base="8" onclick="setProgBase(8)">
+                            <div class="text-[11px] font-bold opacity-60 mb-1">OCTAL</div>
+                            <input type="text" id="prog-oct" class="w-full bg-transparent text-emerald-400 display-font text-2xl outline-none" readonly value="0">
+                        </div>
+                        <div class="glass-panel border-2 rounded-xl p-4 cursor-pointer prog-base-box relative" data-base="2" onclick="setProgBase(2)">
+                            <div class="text-[11px] font-bold opacity-60 mb-1">BINARY</div>
+                            <input type="text" id="prog-bin" class="w-full bg-transparent text-blue-400 display-font text-2xl outline-none" readonly value="0">
+                        </div>
+                    </div>
+
+                    <!-- Programmer Keypad matching exact requested grid -->
+                    <div class="glass-panel rounded-2xl p-6 shadow-xl h-fit w-fit mx-auto md:mx-0">
+                        <div class="grid grid-cols-4 gap-2" style="width: 320px;">
+                            <!-- Row 1 -->
+                            <button class="calc-btn l1-num prog-hex-btn prog-key" onclick="progKey('D')">D</button>
+                            <button class="calc-btn l1-num prog-hex-btn prog-key" onclick="progKey('E')">E</button>
+                            <button class="calc-btn l1-num prog-hex-btn prog-key" onclick="progKey('F')">F</button>
+                            <button class="calc-btn l1-ac" onclick="progClear()">AC</button>
+                            
+                            <!-- Row 2 -->
+                            <button class="calc-btn l1-num prog-hex-btn prog-key" onclick="progKey('A')">A</button>
+                            <button class="calc-btn l1-num prog-hex-btn prog-key" onclick="progKey('B')">B</button>
+                            <button class="calc-btn l1-num prog-hex-btn prog-key" onclick="progKey('C')">C</button>
+                            <button class="calc-btn l1-num bg-slate-700" onclick="progBack()"><i class="fa-solid fa-delete-left"></i></button>
+                            
+                            <!-- Row 3 -->
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('7')">7</button>
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('8')">8</button>
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('9')">9</button>
+                            <button class="calc-btn l1-num bg-slate-800" onclick="progKey('-')">−</button>
+
+                            <!-- Row 4 -->
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('4')">4</button>
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('5')">5</button>
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('6')">6</button>
+                            <div></div> <!-- Empty for precision layout -->
+
+                            <!-- Row 5 -->
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('1')">1</button>
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('2')">2</button>
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('3')">3</button>
+                            <div></div> <!-- Empty for precision layout -->
+
+                            <!-- Row 6 -->
+                            <button class="calc-btn l1-num prog-key" onclick="progKey('0')">0</button>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            
+                            <!-- Save to History -->
+                            <button class="calc-btn l1-eq col-span-4 mt-3 py-3" onclick="logProgrammerHistory()">= Save to History</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-history" class="view-section">
+            <div class="max-w-4xl mx-auto w-full flex flex-col gap-4 pb-6">
+                <div class="flex justify-between items-end mb-4 border-b pb-4" style="border-color: var(--border-color);">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-1" style="color: var(--text-color);">Global History</h2>
+                        <p class="text-sm opacity-60">Logs from all calculators and tools.</p>
+                    </div>
+                    <button class="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-sm font-bold transition-colors shadow-lg" onclick="clearGlobalHistory()">Clear All Logs</button>
+                </div>
+
+                <div id="global-history-list" class="flex flex-col gap-3">
+                    <div class="glass-panel rounded-xl p-8 text-center text-sm opacity-50">
+                        No calculations performed yet. Data will appear here automatically.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-section">
+            <div class="max-w-xl mx-auto w-full mt-6">
+                <div class="glass-panel rounded-2xl p-8 shadow-2xl">
+                    <h3 class="text-xl font-bold mb-6 border-b pb-4" style="border-color: var(--border-color);">Application Settings</h3>
+                    
+                    <div class="flex justify-between items-center py-4 border-b" style="border-color: var(--border-color);">
+                        <div>
+                            <div class="font-semibold text-sm">Theme Mode</div>
+                            <div class="text-xs opacity-50">Switch between light and dark base colors</div>
+                        </div>
+                        <button class="px-5 py-2 glass-panel rounded-lg text-sm font-medium transition-colors hover:bg-white/10" onclick="toggleThemeMode()">Toggle Mode</button>
+                    </div>
+
+                    <div class="flex justify-between items-center py-4 border-b" style="border-color: var(--border-color);">
+                        <div>
+                            <div class="font-semibold text-sm">App Background Color</div>
+                            <div class="text-xs opacity-50">Customize the root background layout</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="bg-color-picker" value="#0a0f18" onchange="changeBgColor(this.value)" class="w-10 h-10 rounded border-0 cursor-pointer bg-transparent outline-none">
+                            <button class="px-3 py-1 glass-panel rounded text-xs font-bold" onclick="resetBgColor()">Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center py-4 border-b" style="border-color: var(--border-color);">
+                        <div>
+                            <div class="font-semibold text-sm">Accent Color</div>
+                            <div class="text-xs opacity-50">Customize highlight/glow colors</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="accent-color-picker" value="#06b6d4" onchange="changeAccentColor(this.value)" class="w-10 h-10 rounded border-0 cursor-pointer bg-transparent outline-none">
+                            <button class="px-3 py-1 glass-panel rounded text-xs font-bold" onclick="resetAccentColor()">Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center py-4">
+                        <div>
+                            <div class="font-semibold text-sm">Default Angle Mode</div>
+                            <div class="text-xs opacity-50">Used in trigonometric functions</div>
+                        </div>
+                        <button id="settings-angle-badge" class="px-5 py-2 glass-panel font-bold text-sm rounded-lg w-20 text-center" style="color: var(--accent-color);" onclick="toggleGlobalAngle()">DEG</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-6 right-6 bg-cyan-400 text-slate-900 px-6 py-3 rounded-xl shadow-2xl transform translate-y-32 opacity-0 transition-all duration-300 font-bold text-sm z-50">
+</div>
+
+<script>
+    // Navigation handling
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = document.querySelectorAll('.view-section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            navItems.forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+            const target = item.getAttribute('data-target');
+            views.forEach(v => {
+                if(v.id === target) v.classList.add('active');
+                else v.classList.remove('active');
+            });
+        });
+    });
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.transform = 'translateY(0)';
+        t.style.opacity = '1';
+        setTimeout(() => {
+            t.style.transform = 'translateY(32px)';
+            t.style.opacity = '0';
+        }, 2500);
+    }
+
+    // --- Smart Decimal Logic Helper ---
+    function handleDecimalAppend(currentString) {
+        if(!currentString || /[\s\+\-\*\/\(\)\,]$/.test(currentString)) {
+            return currentString + "0.";
+        }
+        return currentString + ".";
+    }
+
+    // --- Core History Engine ---
+    let globalHistory = [];
+    
+    function recordHistory(tool, expression, result) {
+        let tagClass = "tag-calc";
+        if(tool === 'Formula') tagClass = "tag-form";
+        if(tool === 'Entropy') tagClass = "tag-ent";
+        if(tool === 'Info Theory') tagClass = "tag-info";
+        if(tool === 'Programmer') tagClass = "tag-prog";
+
+        globalHistory.unshift({ 
+            tool, tagClass, expression, result, 
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) 
+        });
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const container = document.getElementById('global-history-list');
+        if(globalHistory.length === 0) {
+            container.innerHTML = `<div class="glass-panel rounded-xl p-8 text-center text-sm opacity-50">No calculations performed yet.</div>`;
+            return;
+        }
+        container.innerHTML = globalHistory.map(h => `
+            <div class="glass-panel rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:bg-white/5">
+                <div class="flex-1 w-full overflow-hidden">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-[10px] uppercase font-bold px-2 py-1 rounded-md ${h.tagClass}">${h.tool}</span>
+                        <span class="text-xs opacity-50 font-mono">${h.time}</span>
+                    </div>
+                    <div class="display-font text-sm opacity-80 break-words w-full">${h.expression}</div>
+                </div>
+                <div class="display-font text-2xl font-bold min-w-fit text-right" style="color: var(--accent-color);">= ${h.result}</div>
+            </div>
+        `).join('');
+    }
+
+    function clearGlobalHistory() {
+        globalHistory = [];
+        renderHistory();
+        showToast("All history cleared");
+    }
+
+    let isDark = true;
+    function toggleThemeMode() {
+        isDark = !isDark;
+        const htmlEl = document.documentElement;
+        if(isDark) {
+            htmlEl.classList.add('dark'); htmlEl.classList.remove('light');
+            resetBgColor(); 
+        } else {
+            htmlEl.classList.remove('dark'); htmlEl.classList.add('light');
+            resetBgColor();
+        }
+        showToast(`Switched to ${isDark ? 'Dark' : 'Light'} Mode`);
+    }
+
+    function changeBgColor(hex) {
+        document.documentElement.style.setProperty('--bg-color', hex);
+        showToast("Background color updated");
+    }
+
+    function resetBgColor() {
+        const defaultHex = isDark ? '#0a0f18' : '#f8fafc';
+        document.documentElement.style.setProperty('--bg-color', defaultHex);
+        document.getElementById('bg-color-picker').value = defaultHex;
+    }
+
+    function changeAccentColor(hex) {
+        document.documentElement.style.setProperty('--accent-color', hex);
+        showToast("Accent color updated");
+    }
+
+    function resetAccentColor() {
+        const defaultHex = isDark ? '#06b6d4' : '#0284c7';
+        document.documentElement.style.setProperty('--accent-color', defaultHex);
+        document.getElementById('accent-color-picker').value = defaultHex;
+    }
+
+    let isDeg = true;
+    function toggleGlobalAngle() {
+        isDeg = !isDeg;
+        const txt = isDeg ? 'DEG' : 'RAD';
+        document.getElementById('global-angle-btn').innerText = txt;
+        document.getElementById('settings-angle-badge').innerText = txt;
+        showToast(`Angle mode: ${txt}`);
+    }
+
+    function factorial(n) {
+        if(n < 0 || !Number.isInteger(n)) return NaN;
+        if(n === 0 || n === 1) return 1;
+        let r = 1; for(let i=2; i<=n; i++) r *= i; return r;
+    }
+
+    let calcInput = "";
+    const calcDisp = document.getElementById('calc-main-display');
+    const calcExpr = document.getElementById('calc-expr');
+
+    function updateCalc() { calcDisp.innerText = calcInput || "0"; }
+    function calcChar(c) {
+        if(calcInput === "Error") calcInput = "";
+        calcInput += c; updateCalc();
+    }
+    function calcDecimal() {
+        if(calcInput === "Error") calcInput = "";
+        calcInput = handleDecimalAppend(calcInput); updateCalc();
+    }
+    function calcFn(fn) {
+        if(calcInput === "Error") calcInput = "";
+        calcInput += fn + '('; updateCalc();
+    }
+    function calcBack() {
+        if(calcInput === "Error") calcInput = "";
+        calcInput = calcInput.slice(0, -1); updateCalc();
+    }
+    function calcClear() { calcInput = ""; calcExpr.innerText = ""; updateCalc(); }
+    
+    function calcCompute() {
+        if(!calcInput) return;
+        let expr = calcInput;
+        calcExpr.innerText = expr + " =";
+        try {
+            let js = expr
+                .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/π/g, 'Math.PI').replace(/e/g, 'Math.E')
+                .replace(/log10\(/g, 'Math.log10(').replace(/log2\(/g, 'Math.log2(').replace(/ln\(/g, 'Math.log(')
+                .replace(/sqrt\(/g, 'Math.sqrt(').replace(/abs\(/g, 'Math.abs(')
+                .replace(/asin\(/g, isDeg ? '(180/Math.PI)*Math.asin(' : 'Math.asin(')
+                .replace(/acos\(/g, isDeg ? '(180/Math.PI)*Math.acos(' : 'Math.acos(')
+                .replace(/atan\(/g, isDeg ? '(180/Math.PI)*Math.atan(' : 'Math.atan(')
+                .replace(/sin\(/g, isDeg ? 'Math.sin(Math.PI/180*' : 'Math.sin(')
+                .replace(/cos\(/g, isDeg ? 'Math.cos(Math.PI/180*' : 'Math.cos(')
+                .replace(/tan\(/g, isDeg ? 'Math.tan(Math.PI/180*' : 'Math.tan(')
+                .replace(/\^/g, '**');
+
+            js = js.replace(/(\d+(?:\.\d+)?)!/g, 'factorial($1)');
+            const res = new Function('factorial', 'return ' + js)(factorial);
+            
+            let finalRes = Number.isInteger(res) ? res.toString() : res.toFixed(8).replace(/\.?0+$/, '');
+            if(finalRes === "NaN" || finalRes === "Infinity") finalRes = "Error";
+            calcInput = finalRes; updateCalc();
+            recordHistory('Calculator', expr, finalRes);
+        } catch(e) {
+            calcInput = "Error"; updateCalc();
+        }
+    }
+
+    const formulaLibrary = [
+        { name: "Algebra: (a+b)²", val: "(a+b)^2 = a^2 + b^2 + 2*a*b" },
+        { name: "Algebra: (a-b)²", val: "(a-b)^2 = a^2 + b^2 - 2*a*b" },
+        { name: "Algebra: a²-b²", val: "a^2 - b^2 = (a-b)*(a+b)" },
+        { name: "Algebra: Quadratic Roots", val: "(-b + sqrt(b^2 - 4*a*c)) / (2*a)" },
+        { name: "Geometry: Pythagorean c", val: "sqrt(a^2 + b^2)" },
+        { name: "Geometry: Circle Area", val: "π * r^2" },
+        { name: "Geometry: Sphere Volume", val: "(4/3) * π * r^3" },
+        { name: "Physics: Kinetic Energy", val: "0.5 * m * v^2" },
+        { name: "Physics: Potential Energy", val: "m * g * h" },
+        { name: "Physics: E=mc²", val: "m * c^2" },
+        { name: "Physics: Force (Newton)", val: "m * a" },
+        { name: "Physics: Centripetal Force", val: "(m * v^2) / r" },
+        { name: "Elec: Ohm's Law (V)", val: "I * R" },
+        { name: "Elec: Power (P)", val: "V * I" },
+        { name: "Elec: Coulomb's Force", val: "k * abs(q1 * q2) / r^2" },
+        { name: "Thermo: Ideal Gas (P)", val: "(n * R * T) / V" },
+        { name: "Waves: Snell's Law (θ2)", val: "asin((n1 * sin(theta1)) / n2)" },
+        { name: "Waves: Speed", val: "f * lambda" },
+        { name: "Stats: Z-Score", val: "(x - mu) / sigma" },
+        { name: "InfoTheory: Shannon Capacity", val: "B * log2(1 + S_N)" },
+    ];
+    for(let i=1; i<=45; i++) formulaLibrary.push({name: `Advanced Formula ${i}`, val: `x^${i} + y / ${i}`});
+
+    function populateFormulaLibrary() {
+        const sel = document.getElementById('formula-library-select');
+        formulaLibrary.forEach((f) => {
+            const opt = document.createElement('option');
+            opt.value = f.val; opt.innerText = f.name; sel.appendChild(opt);
+        });
+    }
+    populateFormulaLibrary();
+
+    function loadFormulaFromLibrary(selectEl) {
+        if(!selectEl.value) return;
+        document.getElementById('formula-input').value = selectEl.value;
+        onFormulaInputChange(); showToast("Formula loaded");
+    }
+
+    let formulaVariables = {};
+    function onFormulaInputChange() {
+        const txt = document.getElementById('formula-input').value;
+        const matches = txt.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [];
+        const ignoreWords = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'log', 'ln', 'sqrt', 'abs', 'PI', 'E', 'integral', 'lim', 'product', 'sum', 'det'];
+        const vars = [...new Set(matches)].filter(v => !ignoreWords.includes(v));
+        
+        const container = document.getElementById('formula-variables-container');
+        container.innerHTML = '';
+        
+        if(vars.length === 0) {
+            container.innerHTML = '<div class="text-xs opacity-50 col-span-full">No variables detected in formula.</div>';
+            formulaVariables = {}; return;
+        }
+
+        vars.forEach(v => {
+            if(formulaVariables[v] === undefined) formulaVariables[v] = 1;
+            const div = document.createElement('div');
+            div.className = 'glass-panel p-3 rounded-xl flex items-center justify-between border border-cyan-500/20';
+            div.innerHTML = `
+                <span class="font-bold display-font text-sm" style="color: var(--accent-color);">${v} =</span>
+                <input type="number" step="any" value="${formulaVariables[v]}" onchange="formulaVariables['${v}'] = parseFloat(this.value) || 0" class="w-20 bg-black/20 rounded-md p-1.5 display-font text-sm text-right outline-none focus:ring-1 ring-cyan-500">
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function fKey(s) { document.getElementById('formula-input').value += s; onFormulaInputChange(); }
+    function fDecimal() {
+        let inp = document.getElementById('formula-input');
+        inp.value = handleDecimalAppend(inp.value);
+        onFormulaInputChange();
+    }
+    function formulaClear() { document.getElementById('formula-input').value = ''; onFormulaInputChange(); document.getElementById('formula-result-display').innerText = '= 0'; }
+    function formulaBack() {
+        const inp = document.getElementById('formula-input');
+        inp.value = inp.value.slice(0, -1); onFormulaInputChange();
+    }
+
+    function evaluateCustomFormula() {
+        let raw = document.getElementById('formula-input').value;
+        if(!raw) return;
+        try {
+            let expr = raw.includes('=') ? raw.split('=')[1].trim() : raw.trim();
+            if(raw.includes('=') && raw.split('=')[0].trim().includes('=')) {
+               expr = raw.split('=')[0].trim(); 
+            }
+            
+            let js = expr
+                .replace(/π/g, 'Math.PI').replace(/e\^/g, 'Math.exp(')
+                .replace(/sqrt\(/g, 'Math.sqrt(').replace(/abs\(/g, 'Math.abs(')
+                .replace(/sin\(/g, isDeg ? 'Math.sin(Math.PI/180*' : 'Math.sin(')
+                .replace(/cos\(/g, isDeg ? 'Math.cos(Math.PI/180*' : 'Math.cos(')
+                .replace(/tan\(/g, isDeg ? 'Math.tan(Math.PI/180*' : 'Math.tan(')
+                .replace(/\^/g, '**');
+
+            const keys = Object.keys(formulaVariables);
+            const vals = Object.values(formulaVariables);
+            const fn = new Function(...keys, 'factorial', 'return ' + js);
+            const res = fn(...vals, factorial);
+            
+            let finalRes = Number.isInteger(res) ? res.toString() : res.toFixed(6).replace(/\.?0+$/, '');
+            document.getElementById('formula-result-display').innerText = '= ' + finalRes;
+            recordHistory('Formula', raw, finalRes);
+            showToast("Evaluated successfully");
+        } catch(e) {
+            document.getElementById('formula-result-display').innerText = '= Error';
+            showToast("Syntax Error in Formula");
+        }
+    }
+    document.getElementById('formula-input').value = "a + b * c";
+    onFormulaInputChange();
+
+    function showEntKeypad() {
+        document.getElementById('entropy-keypad').style.display = 'grid';
+    }
+    function hideEntKeypad() {
+        document.getElementById('entropy-keypad').style.display = 'none';
+    }
+    function entKey(k) { document.getElementById('entropy-input').value += k; }
+    function entDecimal() {
+        let inp = document.getElementById('entropy-input');
+        inp.value = handleDecimalAppend(inp.value);
+    }
+    function entClear() { document.getElementById('entropy-input').value = ""; }
+    function entBack() {
+        let v = document.getElementById('entropy-input').value;
+        document.getElementById('entropy-input').value = v.slice(0, -1);
+    }
+
+    // Shannon Fano Generator
+    function buildShannonFano(probs) {
+        let nodes = probs.map((p, i) => ({sym: 'x'+(i+1), p: p, code: ''}));
+        nodes.sort((a,b) => b.p - a.p);
+        
+        function divide(arr) {
+            if(arr.length <= 1) return;
+            let total = arr.reduce((acc, val) => acc + val.p, 0);
+            let sum = 0, splitIndex = 0, minDiff = Infinity;
+            for(let i=0; i<arr.length-1; i++) {
+                sum += arr[i].p;
+                let diff = Math.abs((total - sum) - sum);
+                if(diff < minDiff) { minDiff = diff; splitIndex = i; }
+            }
+            for(let i=0; i<=splitIndex; i++) arr[i].code += '0';
+            for(let i=splitIndex+1; i<arr.length; i++) arr[i].code += '1';
+            divide(arr.slice(0, splitIndex+1));
+            divide(arr.slice(splitIndex+1));
+        }
+        divide(nodes);
+        let map = {};
+        nodes.forEach(n => map[n.sym] = { p: n.p, code: n.code, len: n.code.length });
+        return map;
+    }
+
+    // Huffman Generator
+    function buildHuffman(probs) {
+        let nodes = probs.map((p, i) => ({sym: 'x'+(i+1), p: p, code: ''}));
+        let pq = nodes.map(n => ({...n, left:null, right:null}));
+        
+        if(pq.length === 1) { 
+            return { [pq[0].sym]: { p: pq[0].p, code: '0', len: 1 } };
+        }
+
+        while(pq.length > 1) {
+            pq.sort((a,b) => a.p - b.p);
+            let left = pq.shift();
+            let right = pq.shift();
+            pq.push({sym: left.sym+right.sym, p: left.p+right.p, left: left, right: right, code: ''});
+        }
+        
+        let root = pq[0];
+        let map = {};
+        function traverse(node, prefix) {
+            if(!node.left && !node.right) {
+                // If the symbol originally existed in our probs list
+                if(nodes.find(n => n.sym === node.sym)) {
+                    map[node.sym] = { p: node.p, code: prefix || '0', len: (prefix||'0').length };
+                }
+                return;
+            }
+            if(node.left) traverse(node.left, prefix + '0');
+            if(node.right) traverse(node.right, prefix + '1');
+        }
+        traverse(root, '');
+        return map;
+    }
+
+    function computeEntropy() {
+        let raw = document.getElementById('entropy-input').value;
+        let probs = raw.replace(/,/g, ' ').split(/\s+/).map(s => parseFloat(s)).filter(n => !isNaN(n) && n > 0);
+        
+        if(probs.length === 0) { showToast("Enter valid probabilities"); return; }
+        
+        // Normalize
+        let sum = probs.reduce((a,b)=>a+b, 0);
+        probs = probs.map(p => p/sum);
+        
+        // Entropy Math
+        let H = 0, Hnats = 0;
+        probs.forEach(p => { H += p * -Math.log2(p); Hnats += p * -Math.log(p); });
+
+        let maxH = Math.log2(probs.length);
+        let eff = maxH > 0 ? (H / maxH) * 100 : 100;
+
+        document.getElementById('ent-res-bits').innerText = H.toFixed(4) + " b";
+        document.getElementById('ent-res-nats').innerText = Hnats.toFixed(4) + " nt";
+        document.getElementById('ent-res-max').innerText = maxH.toFixed(4) + " b";
+        document.getElementById('ent-res-eff').innerText = eff.toFixed(1) + "%";
+
+        // Code Performance
+        let sfCodes = buildShannonFano(probs);
+        let hfCodes = buildHuffman(probs);
+        
+        let sfAvg = 0, hfAvg = 0;
+        let tbody = '';
+        
+        // Build table and compute averages
+        probs.forEach((p, i) => {
+            let sym = 'x'+(i+1);
+            let sf = sfCodes[sym];
+            let hf = hfCodes[sym];
+            sfAvg += sf.p * sf.len;
+            hfAvg += hf.p * hf.len;
+
+            tbody += `
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="p-4 font-mono font-bold">${sym}</td>
+                    <td class="p-4 font-mono opacity-80">${p.toFixed(4)}</td>
+                    <td class="p-4 font-mono text-cyan-400">${sf.code} <span class="opacity-50 text-xs">(${sf.len})</span></td>
+                    <td class="p-4 font-mono text-fuchsia-400">${hf.code} <span class="opacity-50 text-xs">(${hf.len})</span></td>
+                </tr>
+            `;
+        });
+        
+        document.getElementById('entropy-table-body').innerHTML = tbody;
+
+        let sfEff = sfAvg > 0 ? (H / sfAvg) * 100 : 100;
+        let sfRed = 100 - sfEff;
+        
+        let hfEff = hfAvg > 0 ? (H / hfAvg) * 100 : 100;
+        let hfRed = 100 - hfEff;
+
+        document.getElementById('sf-avg').innerText = sfAvg.toFixed(4);
+        document.getElementById('sf-eff').innerText = sfEff.toFixed(2) + "%";
+        document.getElementById('sf-red').innerText = sfRed.toFixed(2) + "%";
+
+        document.getElementById('hf-avg').innerText = hfAvg.toFixed(4);
+        document.getElementById('hf-eff').innerText = hfEff.toFixed(2) + "%";
+        document.getElementById('hf-red').innerText = hfRed.toFixed(2) + "%";
+
+        recordHistory('Entropy', `P(X) = [${probs.map(p=>p.toFixed(2)).join(', ')}]`, `H=${H.toFixed(4)}`);
+        hideEntKeypad();
+        showToast("Entropy calculated & logged");
+    }
+
+    function showITKeypad() {
+        document.getElementById('it-keypad').style.display = 'grid';
+    }
+    function hideITKeypad() {
+        document.getElementById('it-keypad').style.display = 'none';
+    }
+    function itKey(k) { document.getElementById('it-matrix').value += k; }
+    function itDecimal() {
+        let inp = document.getElementById('it-matrix');
+        inp.value = handleDecimalAppend(inp.value);
+    }
+    function itClear() { document.getElementById('it-matrix').value = ""; }
+    function itBack() {
+        let v = document.getElementById('it-matrix').value;
+        document.getElementById('it-matrix').value = v.slice(0, -1);
+    }
+
+    function computeInfoTheory() {
+        let raw = document.getElementById('it-matrix').value;
+        try {
+            let rows = raw.trim().split('\n').map(r => r.split(/[\s,]+/).filter(v => v !== '').map(n => parseFloat(n)));
+            if(rows.length === 0 || rows[0].length === 0) throw "Empty matrix";
+            
+            let HXY = 0, mX = new Array(rows.length).fill(0), mY = new Array(rows[0].length).fill(0);
+            for(let i=0; i<rows.length; i++) {
+                for(let j=0; j<rows[i].length; j++) {
+                    let p = rows[i][j];
+                    if(!isNaN(p)) { 
+                        mX[i] += p; 
+                        mY[j] += p; 
+                        if(p > 0) HXY += p * -Math.log2(p); 
+                    }
+                }
+            }
+            let HX = 0; mX.forEach(p => { if(p > 0) HX += p * -Math.log2(p); });
+            let HY = 0; mY.forEach(p => { if(p > 0) HY += p * -Math.log2(p); });
+            let HY_X = Math.max(0, HXY - HX), HX_Y = Math.max(0, HXY - HY), IXY = Math.max(0, HX + HY - HXY);
+
+            document.getElementById('it-hx').innerText = HX.toFixed(4) + " b";
+            document.getElementById('it-hy').innerText = HY.toFixed(4) + " b";
+            document.getElementById('it-hxy').innerText = HXY.toFixed(4) + " b";
+            document.getElementById('it-hx_y').innerText = HX_Y.toFixed(4) + " b";
+            document.getElementById('it-hy_x').innerText = HY_X.toFixed(4) + " b";
+            document.getElementById('it-ixy').innerText = IXY.toFixed(4) + " b";
+            
+            recordHistory('Info Theory', `Joint Matrix Size: ${rows.length}x${rows[0].length}`, `I(X;Y) = ${IXY.toFixed(4)} bits`);
+            hideITKeypad();
+            showToast("Matrix evaluated & logged");
+        } catch(e) {
+            showToast("Matrix syntax error");
+        }
+    }
+
+    let progBase = 10;
+    let progStr = "0";
+    function setProgBase(b) {
+        progBase = b;
+        document.querySelectorAll('.prog-base-box').forEach(el => {
+            el.classList.remove('border-cyan-500');
+            el.classList.add('border-transparent');
+            if(el.getAttribute('data-base') == b) {
+                el.classList.remove('border-transparent');
+                el.classList.add('border-cyan-500');
+            }
+        });
+
+        const hexBtns = document.querySelectorAll('.prog-hex-btn');
+        hexBtns.forEach(btn => {
+            btn.style.opacity = (b === 16) ? '1' : '0.1';
+            btn.style.pointerEvents = (b === 16) ? 'auto' : 'none';
+        });
+        
+        const numBtns = document.querySelectorAll('.prog-key');
+        numBtns.forEach(btn => {
+            let val = btn.innerText;
+            if(!['A','B','C','D','E','F','-'].includes(val)) {
+                let vInt = parseInt(val);
+                let valid = true;
+                if(b === 8 && vInt >= 8) valid = false;
+                if(b === 2 && vInt >= 2) valid = false;
+                
+                btn.style.opacity = valid ? '1' : '0.1';
+                btn.style.pointerEvents = valid ? 'auto' : 'none';
+            }
+        });
+        updateProg();
+    }
+
+    function progKey(k) {
+        if(progStr === "0" && k !== "-") progStr = "";
+        progStr += k; updateProg();
+    }
+    function progClear() { progStr = "0"; updateProg(); }
+    function progBack() {
+        progStr = progStr.length > 1 ? progStr.slice(0, -1) : "0";
+        updateProg();
+    }
+    function updateProg() {
+        let dec = parseInt(progStr, progBase);
+        if(isNaN(dec)) dec = 0;
+        document.getElementById('prog-dec').value = dec.toString(10);
+        document.getElementById('prog-hex').value = dec.toString(16).toUpperCase();
+        document.getElementById('prog-oct').value = dec.toString(8);
+        document.getElementById('prog-bin').value = dec.toString(2);
+    }
+    function logProgrammerHistory() {
+        let dec = parseInt(progStr, progBase);
+        if(isNaN(dec)) dec = 0;
+        recordHistory('Programmer', `Converted ${progStr} (Base ${progBase})`, `DEC: ${dec}`);
+        showToast("Logged to History");
+    }
+
+    setProgBase(10);
+</script>
+</body>
+</html>
